@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/daily_view_screen.dart';
+import 'screens/home_shell.dart';
 import 'services/storage_service.dart';
 
 Future<void> main() async {
@@ -31,7 +31,7 @@ class PlannerApp extends StatelessWidget {
         useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
-      home: const DailyViewScreen(),
+      home: const HomeShell(),
     );
   }
 }
