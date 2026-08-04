@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/home_shell.dart';
 import 'services/completion_service.dart';
+import 'services/gamification_service.dart';
 import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 
@@ -9,6 +10,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.instance.init();
   await CompletionService.instance.init();
+  await GamificationService.instance.init();
   await NotificationService.instance.init();
   runApp(const PlannerApp());
 }

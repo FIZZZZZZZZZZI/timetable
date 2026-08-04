@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../models/activity_slot.dart';
 import '../services/completion_service.dart';
+import '../services/gamification_service.dart';
 import '../services/storage_service.dart';
 import '../utils/week_dates.dart';
 import '../widgets/activity_slot_tile.dart';
 import '../widgets/add_edit_slot_sheet.dart';
 import '../widgets/day_tabs.dart';
+import '../widgets/level_up_dialog.dart';
+import '../widgets/progress_header_card.dart';
 
 class DailyViewScreen extends StatefulWidget {
   const DailyViewScreen({super.key});
@@ -20,6 +23,7 @@ class DailyViewScreen extends StatefulWidget {
 class _DailyViewScreenState extends State<DailyViewScreen> {
   final _storage = StorageService.instance;
   final _completion = CompletionService.instance;
+  final _gamification = GamificationService.instance;
   late int _selectedDay;
   late Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -67,12 +71,30 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
 
   Future<void> _toggleDone(ActivitySlot slot, DateTime date, bool currentlyDone) async {
     debugPrint('[checkin] toggle tapped: slot=${slot.id} date=$date currentlyDone=$currentlyDone');
+    final daySlots = _storage.getForDay(slot.dayOfWeek);
+
     if (currentlyDone) {
       await _completion.unmarkDone(slot.id, date);
-    } else {
-      await _completion.markDone(slot.id, date);
+      await _gamification.onSlotUnmarkedDone(
+        slotId: slot.id,
+        date: date,
+        allSlotsForDate: daySlots,
+      );
+      if (mounted) setState(() {});
+      return;
     }
-    if (mounted) setState(() {});
+
+    await _completion.markDone(slot.id, date);
+    final result = await _gamification.onSlotMarkedDone(
+      slotId: slot.id,
+      date: date,
+      allSlotsForDate: daySlots,
+    );
+    if (!mounted) return;
+    setState(() {});
+    if (result.leveledUp) {
+      await LevelUpDialog.show(context, result.newLevel);
+    }
   }
 
   Future<void> _deleteSlot(ActivitySlot slot) async {
@@ -111,6 +133,13 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
       ),
       body: Column(
         children: [
+          ProgressHeaderCard(
+            level: _gamification.currentLevel,
+            xpIntoLevel: _gamification.xpIntoLevel,
+            xpForNextLevel: _gamification.xpForNextLevel,
+            levelProgress: _gamification.levelProgress,
+            currentStreak: _gamification.progress.currentStreak,
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: DayTabs(

@@ -47,6 +47,24 @@ class CompletionService {
 
   bool isDone(String slotId, DateTime date) => _box.containsKey(_keyFor(slotId, date));
 
+  /// Whether at least one slot (any slot) was completed on [date].
+  bool hasAnyCompletionOn(DateTime date) {
+    final d = normalizeDate(date);
+    return _box.values.any((r) => r.date.isAtSameMomentAs(d));
+  }
+
+  /// The most recent calendar date with at least one completion, or null
+  /// if nothing has ever been completed.
+  DateTime? mostRecentCompletionDate() {
+    DateTime? latest;
+    for (final record in _box.values) {
+      if (latest == null || record.date.isAfter(latest)) {
+        latest = record.date;
+      }
+    }
+    return latest;
+  }
+
   /// All completion records whose date falls within the 7 days starting at
   /// [weekStart] (inclusive of [weekStart], exclusive of [weekStart] + 7d).
   List<CompletionRecord> getCompletionsForWeek(DateTime weekStart) {
