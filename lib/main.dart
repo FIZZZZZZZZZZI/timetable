@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'screens/home_shell.dart';
 import 'services/achievement_service.dart';
@@ -9,6 +10,7 @@ import 'services/notification_service.dart';
 import 'services/prayer_service.dart';
 import 'services/storage_service.dart';
 import 'services/theme_service.dart';
+import 'utils/app_theme_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,25 +30,13 @@ class PlannerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: ThemeService.instance,
-      builder: (context, _) {
-        final seedColor = ThemeService.instance.seedColor;
+    return ValueListenableBuilder<Box>(
+      valueListenable: ThemeService.instance.settingsListenable,
+      builder: (context, _, _) {
         return MaterialApp(
           title: 'Weekly Planner',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: seedColor),
-            useMaterial3: true,
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: seedColor,
-              brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-          ),
-          themeMode: ThemeService.instance.themeMode,
+          theme: buildThemeData(ThemeService.instance.currentTheme),
           home: const HomeShell(),
         );
       },

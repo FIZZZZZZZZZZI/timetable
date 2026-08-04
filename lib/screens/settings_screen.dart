@@ -5,7 +5,6 @@ import '../models/jakim_zone.dart';
 import '../services/custom_category_service.dart';
 import '../services/gamification_service.dart';
 import '../services/prayer_service.dart';
-import '../services/theme_service.dart';
 
 const List<String> _kEmojiPresets = [
   '📖', '🎨', '🎮', '🧘', '🍳', '🚴',
@@ -31,7 +30,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _prayer = PrayerService.instance;
   final _gamification = GamificationService.instance;
   final _customCategories = CustomCategoryService.instance;
-  final _theme = ThemeService.instance;
 
   late List<JakimZone> _zones;
   late String _selectedZone;
@@ -205,16 +203,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             description: 'Create your own activity categories with a name, emoji and color.',
             unlockLevel: 5,
           ),
-          const SizedBox(height: 28),
-          Text('Appearance', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          if (level >= 8) _buildAppearanceSection(theme) else _buildLockedCard(
-            theme,
-            icon: Icons.palette_outlined,
-            title: 'Themes & Dark Mode',
-            description: 'Pick a seed color and switch between light and dark mode.',
-            unlockLevel: 8,
-          ),
         ],
       ),
     );
@@ -353,57 +341,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAppearanceSection(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Seed color', style: theme.textTheme.labelLarge),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: List.generate(kSeedColorChoices.length, (i) {
-              final selected = _theme.seedColorIndex == i;
-              return GestureDetector(
-                onTap: () => setState(() => _theme.setSeedColorIndex(i)),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: kSeedColorChoices[i],
-                        shape: BoxShape.circle,
-                        border: selected
-                            ? Border.all(color: theme.colorScheme.onSurface, width: 3)
-                            : null,
-                      ),
-                      child: selected ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(kSeedColorNames[i], style: theme.textTheme.labelSmall),
-                  ],
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Dark mode'),
-            value: _theme.isDarkMode,
-            onChanged: (v) => setState(() => _theme.setDarkMode(v)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _EmojiOption extends StatelessWidget {

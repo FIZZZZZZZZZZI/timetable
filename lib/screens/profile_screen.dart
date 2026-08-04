@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../data/badges.dart';
+import '../data/theme_presets.dart';
 import '../models/activity_category.dart';
+import '../models/app_theme.dart';
 import '../services/achievement_service.dart';
 import '../services/gamification_service.dart';
+import '../services/theme_service.dart';
+import '../utils/app_theme_data.dart';
+import 'theme_editor_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,12 +20,27 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _gamification = GamificationService.instance;
   final _achievements = AchievementService.instance;
+  final _themes = ThemeService.instance;
+
+  Future<void> _selectTheme(String id) async {
+    await _themes.selectTheme(id);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openEditor({AppTheme? existing}) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => ThemeEditorScreen(existing: existing)),
+    );
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progress = _gamification.progress;
     final level = _gamification.currentLevel;
+    final streakColor =
+        theme.extension<AppColorsExtension>()?.streakColor ?? Colors.deepOrange;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile'), centerTitle: false),
@@ -79,7 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.local_fire_department,
-                    iconColor: Colors.deepOrange,
+                    iconColor: streakColor,
                     label: 'Day streak',
                     value: '${progress.currentStreak}',
                   ),
@@ -123,6 +143,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _StatsSummaryCard(
               totalCompletions: _achievements.totalCompletions,
               byCategory: _achievements.completionsByCategory,
+            ),
+            const SizedBox(height: 28),
+            Text('Themes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            for (final preset in _themes.presets)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _ThemeCard(
+                  appTheme: preset,
+                  isActive: preset.id == _themes.selectedThemeId,
+                  requiredLevel: kPresetUnlockLevels[preset.id] ?? 1,
+                  currentLevel: level,
+                  onSelect: () => _selectTheme(preset.id),
+                ),
+              ),
+            for (final custom in _themes.customThemes)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _ThemeCard(
+                  appTheme: custom,
+                  isActive: custom.id == _themes.selectedThemeId,
+                  requiredLevel: kCustomThemeUnlockLevel,
+                  currentLevel: level,
+                  onSelect: () => _selectTheme(custom.id),
+                  onEdit: () => _openEditor(existing: custom),
+                ),
+              ),
+            _CreateThemeCard(
+              unlocked: level >= kCustomThemeUnlockLevel,
+              requiredLevel: kCustomThemeUnlockLevel,
+              onTap: () => _openEditor(),
             ),
             const SizedBox(height: 16),
           ],
@@ -278,6 +329,169 @@ class _StatsSummaryCard extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _ThemeCard extends StatelessWidget {
+  final AppTheme appTheme;
+  final bool isActive;
+  final int requiredLevel;
+  final int currentLevel;
+  final VoidCallback onSelect;
+  final VoidCallback? onEdit;
+
+  const _ThemeCard({
+    required this.appTheme,
+    required this.isActive,
+    required this.requiredLevel,
+    required this.currentLevel,
+    required this.onSelect,
+    this.onEdit,
+  });
+
+  bool get _isLocked => currentLevel < requiredLevel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final locked = _isLocked;
+
+    return Opacity(
+      opacity: locked ? 0.55 : 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isActive ? theme.colorScheme.primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: locked ? null : onSelect,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        appTheme.name,
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    if (locked)
+                      Icon(Icons.lock_outline, size: 18, color: theme.colorScheme.onSurfaceVariant)
+                    else ...[
+                      if (isActive)
+                        Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 20),
+                      if (onEdit != null)
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Edit theme',
+                          onPressed: onEdit,
+                        ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    height: 26,
+                    child: Row(
+                      children: [
+                        appTheme.background,
+                        appTheme.card,
+                        appTheme.primary,
+                        appTheme.accent,
+                        appTheme.streakColor,
+                      ].map((argb) => Expanded(child: Container(color: Color(argb)))).toList(),
+                    ),
+                  ),
+                ),
+                if (locked) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Unlocks at Level $requiredLevel',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateThemeCard extends StatelessWidget {
+  final bool unlocked;
+  final int requiredLevel;
+  final VoidCallback onTap;
+
+  const _CreateThemeCard({
+    required this.unlocked,
+    required this.requiredLevel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Opacity(
+      opacity: unlocked ? 1.0 : 0.55,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: unlocked ? onTap : null,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  unlocked ? Icons.add_circle_outline : Icons.lock_outline,
+                  color: unlocked ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Create custom theme',
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      if (!unlocked)
+                        Text(
+                          'Unlocks at Level $requiredLevel',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -293,12 +293,13 @@ class _PrayerUnavailableBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final accent = PrayerTile.accentOf(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: PrayerTile.accent.withValues(alpha: 0.08),
+        color: accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: PrayerTile.accent.withValues(alpha: 0.3)),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_theme_data.dart';
+
 /// Compact header card for the daily view: current level, XP progress
 /// toward the next level, and the day-streak counter.
 class ProgressHeaderCard extends StatelessWidget {
@@ -23,6 +25,7 @@ class ProgressHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final streakColor = theme.extension<AppColorsExtension>()?.streakColor ?? Colors.deepOrange;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -87,7 +90,7 @@ class ProgressHeaderCard extends StatelessWidget {
               Icon(
                 Icons.local_fire_department,
                 color: currentStreak > 0
-                    ? Colors.deepOrange
+                    ? streakColor
                     : theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.4),
               ),
               Text(

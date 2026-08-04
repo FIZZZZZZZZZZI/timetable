@@ -7,7 +7,10 @@ import 'check_circle.dart';
 /// Distinct from [ActivitySlotTile]: no edit/delete (prayers aren't user
 /// data), just a mosque icon, name, time, and the same check-in circle.
 class PrayerTile extends StatelessWidget {
-  static const Color accent = Color(0xFF0D9488); // emerald/teal
+  /// The prayer section's accent — the current theme's own accent color,
+  /// so it stays in harmony with whatever theme (Ninja, Sunset, a custom
+  /// one, ...) the user has picked, rather than a fixed emerald/teal.
+  static Color accentOf(BuildContext context) => Theme.of(context).colorScheme.secondary;
 
   final PrayerActivity prayer;
   final bool isDone;
@@ -23,6 +26,7 @@ class PrayerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final accent = accentOf(context);
 
     return Opacity(
       opacity: isDone ? 0.6 : 1.0,

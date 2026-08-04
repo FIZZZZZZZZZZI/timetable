@@ -235,7 +235,7 @@ class _DayColumn extends StatelessWidget {
                   ),
                 );
               }),
-              for (final prayer in prayers) _buildPrayerMarker(prayer),
+              for (final prayer in prayers) _buildPrayerMarker(context, prayer),
               for (final layout in layouts) _buildSlotBlock(context, layout, columnWidth),
             ],
           );
@@ -248,7 +248,7 @@ class _DayColumn extends StatelessWidget {
   /// blocks. Prayers outside the grid's visible hour range (e.g. Subuh,
   /// usually before the 7 AM start) are simply skipped rather than clamped
   /// to the edge, which would misrepresent their actual time.
-  Widget _buildPrayerMarker(PrayerActivity prayer) {
+  Widget _buildPrayerMarker(BuildContext context, PrayerActivity prayer) {
     final minutesOfDay = prayer.time.hour * 60 + prayer.time.minute;
     final rangeStart = _startHour * 60;
     final rangeEnd = _endHour * 60;
@@ -262,7 +262,10 @@ class _DayColumn extends StatelessWidget {
       left: 0,
       right: 0,
       child: IgnorePointer(
-        child: Container(height: 1.5, color: PrayerTile.accent.withValues(alpha: 0.55)),
+        child: Container(
+          height: 1.5,
+          color: PrayerTile.accentOf(context).withValues(alpha: 0.55),
+        ),
       ),
     );
   }
