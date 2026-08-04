@@ -6,6 +6,7 @@ import '../models/activity_slot.dart';
 import '../models/user_progress.dart';
 import '../utils/week_dates.dart';
 import 'completion_service.dart';
+import 'prayer_service.dart';
 
 /// Outcome of a single XP-earning action, so the UI knows whether to pop a
 /// level-up celebration.
@@ -28,6 +29,9 @@ class GamificationService {
   static const int xpPerSlot = 10;
   static const int dailyBonusXp = 20;
 
+  static const int xpPerPrayer = 5;
+  static const int allPrayersBonusXp = 25;
+
   final CompletionService _completion = CompletionService.instance;
 
   late Box<UserProgress> _box;
@@ -44,6 +48,7 @@ class GamificationService {
     // broken after the app was closed over a skipped day, not just after
     // the next mark/unmark action.
     await _recomputeStreak();
+    await _recomputePrayerStreak();
   }
 
   UserProgress get progress => _box.get(_key)!;
@@ -143,6 +148,80 @@ class GamificationService {
     final mostRecent = _completion.mostRecentCompletionDate();
     if (mostRecent != null) {
       p.lastCompletedDate = mostRecent;
+    }
+
+    await p.save();
+  }
+
+  /// Call after [CompletionService.markDone] for a prayer id
+  /// (`PrayerService.prayerIds`) succeeds. Mirrors [onSlotMarkedDone] but
+  /// with its own XP amounts, bonus tracking and streak, since prayers are
+  /// a separate concern from regular activity slots.
+  Future<GamificationResult> onPrayerMarkedDone({
+    required String prayerId,
+    required DateTime date,
+  }) async {
+    final p = progress;
+    final levelBefore = levelForXp(p.totalXp);
+
+    p.totalXp += xpPerPrayer;
+
+    final dateKey = _dateKey(date);
+    final allDone = PrayerService.prayerIds.every((id) => _completion.isDone(id, date));
+    if (allDone && !p.prayerBonusDates.contains(dateKey)) {
+      p.totalXp += allPrayersBonusXp;
+      p.prayerBonusDates = [...p.prayerBonusDates, dateKey];
+    }
+
+    final normalized = normalizeDate(date);
+    if (p.lastPrayerCompletedDate == null || normalized.isAfter(p.lastPrayerCompletedDate!)) {
+      p.lastPrayerCompletedDate = normalized;
+    }
+
+    await p.save();
+    await _recomputePrayerStreak();
+
+    final levelAfter = levelForXp(p.totalXp);
+    return GamificationResult(leveledUp: levelAfter > levelBefore, newLevel: levelAfter);
+  }
+
+  /// Call after [CompletionService.unmarkDone] for a prayer id succeeds.
+  Future<void> onPrayerUnmarkedDone({
+    required String prayerId,
+    required DateTime date,
+  }) async {
+    final p = progress;
+
+    p.totalXp -= xpPerPrayer;
+    if (p.totalXp < 0) p.totalXp = 0;
+
+    final dateKey = _dateKey(date);
+    final stillAllDone = PrayerService.prayerIds.every((id) => _completion.isDone(id, date));
+    if (!stillAllDone && p.prayerBonusDates.contains(dateKey)) {
+      p.totalXp -= allPrayersBonusXp;
+      if (p.totalXp < 0) p.totalXp = 0;
+      p.prayerBonusDates = p.prayerBonusDates.where((d) => d != dateKey).toList();
+    }
+
+    await p.save();
+    await _recomputePrayerStreak();
+  }
+
+  /// Consecutive days (ending today) where all 5 prayers were completed.
+  Future<void> _recomputePrayerStreak() async {
+    final p = progress;
+    final today = normalizeDate(DateTime.now());
+
+    var streak = 0;
+    var cursor = today;
+    while (PrayerService.prayerIds.every((id) => _completion.isDone(id, cursor))) {
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    p.prayerCurrentStreak = streak;
+    if (streak > p.prayerLongestStreak) {
+      p.prayerLongestStreak = streak;
     }
 
     await p.save();

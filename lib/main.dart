@@ -4,6 +4,7 @@ import 'screens/home_shell.dart';
 import 'services/completion_service.dart';
 import 'services/gamification_service.dart';
 import 'services/notification_service.dart';
+import 'services/prayer_service.dart';
 import 'services/storage_service.dart';
 
 Future<void> main() async {
@@ -12,6 +13,7 @@ Future<void> main() async {
   await CompletionService.instance.init();
   await GamificationService.instance.init();
   await NotificationService.instance.init();
+  await PrayerService.instance.init();
   runApp(const PlannerApp());
 }
 

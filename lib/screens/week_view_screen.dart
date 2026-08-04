@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
 import '../services/completion_service.dart';
+import '../services/prayer_service.dart';
 import '../services/storage_service.dart';
 import '../utils/slot_layout.dart';
 import '../utils/week_dates.dart';
 import '../widgets/add_edit_slot_sheet.dart';
 import '../widgets/day_tabs.dart';
+import '../widgets/prayer_tile.dart';
 
 const int _startHour = 7;
 const int _endHour = 23; // 11 PM
@@ -24,6 +26,7 @@ class WeekViewScreen extends StatefulWidget {
 class _WeekViewScreenState extends State<WeekViewScreen> {
   final _storage = StorageService.instance;
   final _completion = CompletionService.instance;
+  final _prayer = PrayerService.instance;
 
   Future<void> _openEditSheet(ActivitySlot slot) async {
     final result = await showModalBottomSheet<ActivitySlot>(
@@ -62,6 +65,11 @@ class _WeekViewScreenState extends State<WeekViewScreen> {
             .toSet(),
     };
 
+    final prayersByDay = <int, List<PrayerActivity>>{
+      for (var day = 1; day <= 7; day++)
+        day: _prayer.getPrayerActivitiesForDate(dateForDayOfWeek(day)),
+    };
+
     return Scaffold(
       appBar: AppBar(title: const Text('Week'), centerTitle: false),
       body: Column(
@@ -84,6 +92,7 @@ class _WeekViewScreenState extends State<WeekViewScreen> {
                               isToday: day == today,
                               layouts: layoutsByDay[day]!,
                               doneSlotIds: doneSlotIdsByDay[day]!,
+                              prayers: prayersByDay[day]!,
                               onTapSlot: _openEditSheet,
                             ),
                           );
@@ -184,12 +193,14 @@ class _DayColumn extends StatelessWidget {
   final bool isToday;
   final List<SlotLayout> layouts;
   final Set<String> doneSlotIds;
+  final List<PrayerActivity> prayers;
   final ValueChanged<ActivitySlot> onTapSlot;
 
   const _DayColumn({
     required this.isToday,
     required this.layouts,
     required this.doneSlotIds,
+    required this.prayers,
     required this.onTapSlot,
   });
 
@@ -224,10 +235,34 @@ class _DayColumn extends StatelessWidget {
                   ),
                 );
               }),
+              for (final prayer in prayers) _buildPrayerMarker(prayer),
               for (final layout in layouts) _buildSlotBlock(context, layout, columnWidth),
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Thin horizontal line marking a prayer time, rendered behind slot
+  /// blocks. Prayers outside the grid's visible hour range (e.g. Subuh,
+  /// usually before the 7 AM start) are simply skipped rather than clamped
+  /// to the edge, which would misrepresent their actual time.
+  Widget _buildPrayerMarker(PrayerActivity prayer) {
+    final minutesOfDay = prayer.time.hour * 60 + prayer.time.minute;
+    final rangeStart = _startHour * 60;
+    final rangeEnd = _endHour * 60;
+    if (minutesOfDay < rangeStart || minutesOfDay >= rangeEnd) {
+      return const SizedBox.shrink();
+    }
+
+    final top = (minutesOfDay - rangeStart) / 60 * _hourHeight;
+    return Positioned(
+      top: top - 0.75,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: Container(height: 1.5, color: PrayerTile.accent.withValues(alpha: 0.55)),
       ),
     );
   }

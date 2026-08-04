@@ -18,6 +18,10 @@ class NotificationService {
   static const String _channelName = 'Activity reminders';
   static const String _channelDescription = 'Reminders before your scheduled activities';
 
+  static const String _prayerChannelId = 'prayer_notifications';
+  static const String _prayerChannelName = 'Prayer time notifications';
+  static const String _prayerChannelDescription = 'Alerts when a prayer time begins';
+
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
@@ -74,7 +78,7 @@ class NotificationService {
     if (!_supported) return;
     await init();
 
-    final id = _notificationIdFor(slot.id);
+    final id = idFor(slot.id);
     await _plugin.cancel(id: id);
 
     if (slot.reminderMinutes <= 0) return;
@@ -115,7 +119,70 @@ class NotificationService {
 
   Future<void> cancelReminder(String slotId) async {
     if (!_supported) return;
-    await _plugin.cancel(id: _notificationIdFor(slotId));
+    await _plugin.cancel(id: idFor(slotId));
+  }
+
+  /// Schedules a single, non-repeating notification at the given local
+  /// [dateTime]. Unlike [scheduleReminder] (weekly recurring via
+  /// `matchDateTimeComponents`), this fires once — used for prayer times,
+  /// which shift by a minute or two most days and get rescheduled fresh
+  /// each time the cache refreshes.
+  Future<void> scheduleOneOff({
+    required int id,
+    required DateTime dateTime,
+    required String title,
+    required String body,
+  }) async {
+    if (!_supported) return;
+    await init();
+
+    final scheduledDate = tz.TZDateTime.from(dateTime, tz.local);
+    if (!scheduledDate.isAfter(tz.TZDateTime.now(tz.local))) return;
+
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _prayerChannelId,
+        _prayerChannelName,
+        channelDescription: _prayerChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: const DarwinNotificationDetails(),
+    );
+
+    final scheduleMode = _exactAlarmsAllowed
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+
+    try {
+      await _plugin.zonedSchedule(
+        id: id,
+        scheduledDate: scheduledDate,
+        notificationDetails: details,
+        androidScheduleMode: scheduleMode,
+        title: title,
+        body: body,
+      );
+    } catch (_) {
+      // Same reasoning as scheduleReminder: never let scheduling failures
+      // bubble up into the caller's flow.
+    }
+  }
+
+  Future<void> cancelById(int id) async {
+    if (!_supported) return;
+    await _plugin.cancel(id: id);
+  }
+
+  /// Deterministic 31-bit notification id derived from any string key —
+  /// shared by activity reminders and prayer notifications so both can
+  /// address the same underlying plugin id space consistently.
+  int idFor(String key) {
+    var hash = 0;
+    for (final codeUnit in key.codeUnits) {
+      hash = (hash * 31 + codeUnit) & 0x7FFFFFFF;
+    }
+    return hash;
   }
 
   String _bodyFor(ActivitySlot slot) {
@@ -157,13 +224,5 @@ class NotificationService {
       candidate = candidate.add(const Duration(days: 7));
     }
     return candidate;
-  }
-
-  int _notificationIdFor(String id) {
-    var hash = 0;
-    for (final codeUnit in id.codeUnits) {
-      hash = (hash * 31 + codeUnit) & 0x7FFFFFFF;
-    }
-    return hash;
   }
 }

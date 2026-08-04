@@ -22,13 +22,18 @@ class UserProgressAdapter extends TypeAdapter<UserProgress> {
       longestStreak: fields[2] as int,
       lastCompletedDate: fields[3] as DateTime?,
       bonusDates: fields[4] == null ? [] : (fields[4] as List?)?.cast<String>(),
+      prayerCurrentStreak: fields[5] == null ? 0 : fields[5] as int,
+      prayerLongestStreak: fields[6] == null ? 0 : fields[6] as int,
+      lastPrayerCompletedDate: fields[7] as DateTime?,
+      prayerBonusDates:
+          fields[8] == null ? [] : (fields[8] as List?)?.cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, UserProgress obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.totalXp)
       ..writeByte(1)
@@ -38,7 +43,15 @@ class UserProgressAdapter extends TypeAdapter<UserProgress> {
       ..writeByte(3)
       ..write(obj.lastCompletedDate)
       ..writeByte(4)
-      ..write(obj.bonusDates);
+      ..write(obj.bonusDates)
+      ..writeByte(5)
+      ..write(obj.prayerCurrentStreak)
+      ..writeByte(6)
+      ..write(obj.prayerLongestStreak)
+      ..writeByte(7)
+      ..write(obj.lastPrayerCompletedDate)
+      ..writeByte(8)
+      ..write(obj.prayerBonusDates);
   }
 
   @override

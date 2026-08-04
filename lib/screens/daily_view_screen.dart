@@ -5,13 +5,36 @@ import 'package:flutter/material.dart';
 import '../models/activity_slot.dart';
 import '../services/completion_service.dart';
 import '../services/gamification_service.dart';
+import '../services/prayer_service.dart';
 import '../services/storage_service.dart';
 import '../utils/week_dates.dart';
 import '../widgets/activity_slot_tile.dart';
 import '../widgets/add_edit_slot_sheet.dart';
 import '../widgets/day_tabs.dart';
 import '../widgets/level_up_dialog.dart';
+import '../widgets/prayer_tile.dart';
 import '../widgets/progress_header_card.dart';
+import 'settings_screen.dart';
+
+sealed class _TimelineEntry {
+  int get minutesOfDay;
+}
+
+class _ActivityEntry extends _TimelineEntry {
+  final ActivitySlot slot;
+  _ActivityEntry(this.slot);
+
+  @override
+  int get minutesOfDay => slot.startMinutes;
+}
+
+class _PrayerEntry extends _TimelineEntry {
+  final PrayerActivity prayer;
+  _PrayerEntry(this.prayer);
+
+  @override
+  int get minutesOfDay => prayer.time.hour * 60 + prayer.time.minute;
+}
 
 class DailyViewScreen extends StatefulWidget {
   const DailyViewScreen({super.key});
@@ -24,6 +47,7 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
   final _storage = StorageService.instance;
   final _completion = CompletionService.instance;
   final _gamification = GamificationService.instance;
+  final _prayer = PrayerService.instance;
   late int _selectedDay;
   late Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -97,6 +121,27 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
     }
   }
 
+  Future<void> _togglePrayerDone(
+    PrayerActivity prayer,
+    DateTime date,
+    bool currentlyDone,
+  ) async {
+    if (currentlyDone) {
+      await _completion.unmarkDone(prayer.id, date);
+      await _gamification.onPrayerUnmarkedDone(prayerId: prayer.id, date: date);
+      if (mounted) setState(() {});
+      return;
+    }
+
+    await _completion.markDone(prayer.id, date);
+    final result = await _gamification.onPrayerMarkedDone(prayerId: prayer.id, date: date);
+    if (!mounted) return;
+    setState(() {});
+    if (result.leveledUp) {
+      await LevelUpDialog.show(context, result.newLevel);
+    }
+  }
+
   Future<void> _deleteSlot(ActivitySlot slot) async {
     await _storage.deleteSlot(slot.id);
     if (!mounted) return;
@@ -126,10 +171,27 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
     // stay view-only since you can't complete something before it happens.
     final canToggleDone = !selectedDate.isAfter(normalizeDate(DateTime.now()));
 
+    final timeline = <_TimelineEntry>[
+      ...slots.map(_ActivityEntry.new),
+      ..._prayer.getPrayerActivitiesForDate(selectedDate).map(_PrayerEntry.new),
+    ]..sort((a, b) => a.minutesOfDay.compareTo(b.minutesOfDay));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('This Week'),
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+              if (mounted) setState(() {});
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -139,6 +201,7 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
             xpForNextLevel: _gamification.xpForNextLevel,
             levelProgress: _gamification.levelProgress,
             currentStreak: _gamification.progress.currentStreak,
+            prayerStreak: _gamification.progress.prayerCurrentStreak,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -149,25 +212,36 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
             ),
           ),
           Expanded(
-            child: slots.isEmpty
+            child: timeline.isEmpty
                 ? _EmptyState(onAdd: () => _openAddEditSheet())
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-                    itemCount: slots.length,
+                    itemCount: timeline.length,
                     itemBuilder: (context, index) {
-                      final slot = slots[index];
-                      final isOngoing = slot.isOngoingAt(_now);
-                      final isDone = _completion.isDone(slot.id, selectedDate);
-                      return ActivitySlotTile(
-                        slot: slot,
-                        isOngoing: isOngoing,
-                        isDone: isDone,
-                        onTap: () => _openAddEditSheet(existing: slot),
-                        onDismissed: () => _deleteSlot(slot),
-                        onToggleDone: canToggleDone
-                            ? () => _toggleDone(slot, selectedDate, isDone)
-                            : null,
-                      );
+                      final entry = timeline[index];
+                      switch (entry) {
+                        case _ActivityEntry(:final slot):
+                          final isDone = _completion.isDone(slot.id, selectedDate);
+                          return ActivitySlotTile(
+                            slot: slot,
+                            isOngoing: slot.isOngoingAt(_now),
+                            isDone: isDone,
+                            onTap: () => _openAddEditSheet(existing: slot),
+                            onDismissed: () => _deleteSlot(slot),
+                            onToggleDone: canToggleDone
+                                ? () => _toggleDone(slot, selectedDate, isDone)
+                                : null,
+                          );
+                        case _PrayerEntry(:final prayer):
+                          final isDone = _completion.isDone(prayer.id, selectedDate);
+                          return PrayerTile(
+                            prayer: prayer,
+                            isDone: isDone,
+                            onToggleDone: canToggleDone
+                                ? () => _togglePrayerDone(prayer, selectedDate, isDone)
+                                : null,
+                          );
+                      }
                     },
                   ),
           ),

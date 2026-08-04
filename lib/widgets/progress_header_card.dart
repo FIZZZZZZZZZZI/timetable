@@ -8,6 +8,7 @@ class ProgressHeaderCard extends StatelessWidget {
   final int xpForNextLevel;
   final double levelProgress;
   final int currentStreak;
+  final int prayerStreak;
 
   const ProgressHeaderCard({
     super.key,
@@ -16,6 +17,7 @@ class ProgressHeaderCard extends StatelessWidget {
     required this.xpForNextLevel,
     required this.levelProgress,
     required this.currentStreak,
+    required this.prayerStreak,
   });
 
   @override
@@ -90,6 +92,23 @@ class ProgressHeaderCard extends StatelessWidget {
               ),
               Text(
                 '$currentStreak',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 10),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Opacity(
+                opacity: prayerStreak > 0 ? 1.0 : 0.4,
+                child: const Text('🕌', style: TextStyle(fontSize: 20)),
+              ),
+              Text(
+                '$prayerStreak',
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onPrimaryContainer,

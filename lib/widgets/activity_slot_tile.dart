@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
+import 'check_circle.dart';
 
 class ActivitySlotTile extends StatelessWidget {
   final ActivitySlot slot;
@@ -178,48 +179,13 @@ class ActivitySlotTile extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: _CheckCircle(
+              child: CheckCircle(
                 color: color,
                 isDone: isDone,
                 onTap: onToggleDone,
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CheckCircle extends StatelessWidget {
-  final Color color;
-  final bool isDone;
-  final VoidCallback? onTap;
-
-  const _CheckCircle({
-    required this.color,
-    required this.isDone,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: isDone ? color : Colors.transparent,
-      shape: CircleBorder(side: BorderSide(color: color, width: 2)),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          // At least 44x44 so the tap target meets the platform minimum
-          // touch-size guidance instead of the visual 28px circle alone.
-          width: 44,
-          height: 44,
-          child: Center(
-            child: isDone
-                ? const Icon(Icons.check, size: 20, color: Colors.white)
-                : null,
-          ),
         ),
       ),
     );

@@ -24,11 +24,30 @@ class UserProgress extends HiveObject {
   @HiveField(4, defaultValue: <String>[])
   List<String> bonusDates;
 
+  @HiveField(5, defaultValue: 0)
+  int prayerCurrentStreak;
+
+  @HiveField(6, defaultValue: 0)
+  int prayerLongestStreak;
+
+  @HiveField(7)
+  DateTime? lastPrayerCompletedDate;
+
+  /// Calendar dates ('yyyy-MM-dd') that already received the "completed
+  /// all 5 prayers that day" bonus.
+  @HiveField(8, defaultValue: <String>[])
+  List<String> prayerBonusDates;
+
   UserProgress({
     this.totalXp = 0,
     this.currentStreak = 0,
     this.longestStreak = 0,
     this.lastCompletedDate,
     List<String>? bonusDates,
-  }) : bonusDates = bonusDates ?? <String>[];
+    this.prayerCurrentStreak = 0,
+    this.prayerLongestStreak = 0,
+    this.lastPrayerCompletedDate,
+    List<String>? prayerBonusDates,
+  })  : bonusDates = bonusDates ?? <String>[],
+        prayerBonusDates = prayerBonusDates ?? <String>[];
 }
