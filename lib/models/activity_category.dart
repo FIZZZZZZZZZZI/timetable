@@ -62,4 +62,19 @@ extension ActivityCategoryX on ActivityCategory {
         return Icons.event;
     }
   }
+
+  String get emoji {
+    switch (this) {
+      case ActivityCategory.kelas:
+        return '🎓';
+      case ActivityCategory.gym:
+        return '💪';
+      case ActivityCategory.content:
+        return '🎥';
+      case ActivityCategory.study:
+        return '📚';
+      case ActivityCategory.other:
+        return '📌';
+    }
+  }
 }

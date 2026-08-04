@@ -25,13 +25,14 @@ class ActivitySlotAdapter extends TypeAdapter<ActivitySlot> {
       endTime: fields[5] as TimeOfDay,
       location: fields[6] as String?,
       notes: fields[7] as String?,
+      reminderMinutes: fields[8] == null ? 15 : fields[8] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, ActivitySlot obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class ActivitySlotAdapter extends TypeAdapter<ActivitySlot> {
       ..writeByte(6)
       ..write(obj.location)
       ..writeByte(7)
-      ..write(obj.notes);
+      ..write(obj.notes)
+      ..writeByte(8)
+      ..write(obj.reminderMinutes);
   }
 
   @override

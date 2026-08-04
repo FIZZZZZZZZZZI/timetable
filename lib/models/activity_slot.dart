@@ -32,6 +32,13 @@ class ActivitySlot extends HiveObject {
   @HiveField(7)
   String? notes;
 
+  /// Minutes before [startTime] to fire a reminder notification, or 0 for
+  /// no reminder. Older saved slots predate this field; hive_generator
+  /// fills in 15 for them via [HiveField.defaultValue] so they keep
+  /// getting reminders instead of silently losing them.
+  @HiveField(8, defaultValue: 15)
+  int reminderMinutes;
+
   ActivitySlot({
     required this.id,
     required this.title,
@@ -41,6 +48,7 @@ class ActivitySlot extends HiveObject {
     required this.endTime,
     this.location,
     this.notes,
+    this.reminderMinutes = 15,
   });
 
   int get startMinutes => startTime.hour * 60 + startTime.minute;
@@ -61,6 +69,7 @@ class ActivitySlot extends HiveObject {
     TimeOfDay? endTime,
     String? location,
     String? notes,
+    int? reminderMinutes,
   }) {
     return ActivitySlot(
       id: id,
@@ -71,6 +80,7 @@ class ActivitySlot extends HiveObject {
       endTime: endTime ?? this.endTime,
       location: location ?? this.location,
       notes: notes ?? this.notes,
+      reminderMinutes: reminderMinutes ?? this.reminderMinutes,
     );
   }
 }

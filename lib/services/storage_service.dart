@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
 import '../models/time_of_day_adapter.dart';
+import 'notification_service.dart';
 
 class StorageService {
   StorageService._();
@@ -38,13 +39,16 @@ class StorageService {
 
   Future<void> addSlot(ActivitySlot slot) async {
     await _box.put(slot.id, slot);
+    await NotificationService.instance.scheduleReminder(slot);
   }
 
   Future<void> updateSlot(ActivitySlot slot) async {
     await _box.put(slot.id, slot);
+    await NotificationService.instance.scheduleReminder(slot);
   }
 
   Future<void> deleteSlot(String id) async {
     await _box.delete(id);
+    await NotificationService.instance.cancelReminder(id);
   }
 }

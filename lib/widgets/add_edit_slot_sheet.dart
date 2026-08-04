@@ -29,6 +29,7 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
   late int _dayOfWeek;
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
+  late int _reminderMinutes;
 
   bool get _isEditing => widget.existing != null;
 
@@ -43,6 +44,7 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
     _dayOfWeek = existing?.dayOfWeek ?? widget.initialDay;
     _startTime = existing?.startTime ?? const TimeOfDay(hour: 9, minute: 0);
     _endTime = existing?.endTime ?? const TimeOfDay(hour: 10, minute: 0);
+    _reminderMinutes = existing?.reminderMinutes ?? 15;
   }
 
   @override
@@ -94,6 +96,7 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
+      reminderMinutes: _reminderMinutes,
     );
 
     Navigator.of(context).pop(slot);
@@ -184,6 +187,13 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
                   ],
                 ),
                 const SizedBox(height: 20),
+                Text('Reminder', style: theme.textTheme.labelLarge),
+                const SizedBox(height: 8),
+                _ReminderPicker(
+                  selected: _reminderMinutes,
+                  onSelected: (m) => setState(() => _reminderMinutes = m),
+                ),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: _locationController,
                   decoration: const InputDecoration(
@@ -215,6 +225,33 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
           );
         },
       ),
+    );
+  }
+}
+
+const List<int> _reminderOptions = [0, 5, 10, 15, 30, 60];
+
+class _ReminderPicker extends StatelessWidget {
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  const _ReminderPicker({required this.selected, required this.onSelected});
+
+  String _labelFor(int minutes) => minutes == 0 ? 'None' : '$minutes min';
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _reminderOptions.map((minutes) {
+        final isSelected = minutes == selected;
+        return ChoiceChip(
+          label: Text(_labelFor(minutes)),
+          selected: isSelected,
+          onSelected: (_) => onSelected(minutes),
+        );
+      }).toList(),
     );
   }
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_shell.dart';
+import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.instance.init();
+  await NotificationService.instance.init();
   runApp(const PlannerApp());
 }
 
