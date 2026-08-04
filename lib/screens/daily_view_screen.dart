@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/activity_slot.dart';
+import '../services/completion_service.dart';
 import '../services/storage_service.dart';
+import '../utils/week_dates.dart';
 import '../widgets/activity_slot_tile.dart';
 import '../widgets/add_edit_slot_sheet.dart';
 import '../widgets/day_tabs.dart';
@@ -17,6 +19,7 @@ class DailyViewScreen extends StatefulWidget {
 
 class _DailyViewScreenState extends State<DailyViewScreen> {
   final _storage = StorageService.instance;
+  final _completion = CompletionService.instance;
   late int _selectedDay;
   late Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -62,6 +65,15 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
     setState(() => _selectedDay = result.dayOfWeek);
   }
 
+  Future<void> _toggleDone(ActivitySlot slot, DateTime date, bool currentlyDone) async {
+    if (currentlyDone) {
+      await _completion.unmarkDone(slot.id, date);
+    } else {
+      await _completion.markDone(slot.id, date);
+    }
+    if (mounted) setState(() {});
+  }
+
   Future<void> _deleteSlot(ActivitySlot slot) async {
     await _storage.deleteSlot(slot.id);
     if (!mounted) return;
@@ -86,6 +98,8 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
   Widget build(BuildContext context) {
     final slots = _slotsForSelectedDay;
     final theme = Theme.of(context);
+    final selectedDate = dateForDayOfWeek(_selectedDay);
+    final canToggleDone = _selectedDay == DateTime.now().weekday;
 
     return Scaffold(
       appBar: AppBar(
@@ -111,11 +125,16 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
                     itemBuilder: (context, index) {
                       final slot = slots[index];
                       final isOngoing = slot.isOngoingAt(_now);
+                      final isDone = _completion.isDone(slot.id, selectedDate);
                       return ActivitySlotTile(
                         slot: slot,
                         isOngoing: isOngoing,
+                        isDone: isDone,
                         onTap: () => _openAddEditSheet(existing: slot),
                         onDismissed: () => _deleteSlot(slot),
+                        onToggleDone: canToggleDone
+                            ? () => _toggleDone(slot, selectedDate, isDone)
+                            : null,
                       );
                     },
                   ),

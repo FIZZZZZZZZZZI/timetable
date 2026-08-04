@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
 import '../models/time_of_day_adapter.dart';
+import 'completion_service.dart';
 import 'notification_service.dart';
 
 class StorageService {
@@ -50,5 +51,6 @@ class StorageService {
   Future<void> deleteSlot(String id) async {
     await _box.delete(id);
     await NotificationService.instance.cancelReminder(id);
+    await CompletionService.instance.deleteForSlot(id);
   }
 }

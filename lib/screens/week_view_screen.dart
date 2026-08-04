@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
+import '../services/completion_service.dart';
 import '../services/storage_service.dart';
 import '../utils/slot_layout.dart';
+import '../utils/week_dates.dart';
 import '../widgets/add_edit_slot_sheet.dart';
 import '../widgets/day_tabs.dart';
 
@@ -21,6 +23,7 @@ class WeekViewScreen extends StatefulWidget {
 
 class _WeekViewScreenState extends State<WeekViewScreen> {
   final _storage = StorageService.instance;
+  final _completion = CompletionService.instance;
 
   Future<void> _openEditSheet(ActivitySlot slot) async {
     final result = await showModalBottomSheet<ActivitySlot>(
@@ -50,6 +53,15 @@ class _WeekViewScreenState extends State<WeekViewScreen> {
       for (var day = 1; day <= 7; day++) day: computeOverlapLayout(_storage.getForDay(day)),
     };
 
+    final doneSlotIdsByDay = <int, Set<String>>{
+      for (var day = 1; day <= 7; day++)
+        day: layoutsByDay[day]!
+            .map((l) => l.slot)
+            .where((slot) => _completion.isDone(slot.id, dateForDayOfWeek(day)))
+            .map((slot) => slot.id)
+            .toSet(),
+    };
+
     return Scaffold(
       appBar: AppBar(title: const Text('Week'), centerTitle: false),
       body: Column(
@@ -71,6 +83,7 @@ class _WeekViewScreenState extends State<WeekViewScreen> {
                             child: _DayColumn(
                               isToday: day == today,
                               layouts: layoutsByDay[day]!,
+                              doneSlotIds: doneSlotIdsByDay[day]!,
                               onTapSlot: _openEditSheet,
                             ),
                           );
@@ -170,11 +183,13 @@ class _HourGutter extends StatelessWidget {
 class _DayColumn extends StatelessWidget {
   final bool isToday;
   final List<SlotLayout> layouts;
+  final Set<String> doneSlotIds;
   final ValueChanged<ActivitySlot> onTapSlot;
 
   const _DayColumn({
     required this.isToday,
     required this.layouts,
+    required this.doneSlotIds,
     required this.onTapSlot,
   });
 
@@ -235,6 +250,7 @@ class _DayColumn extends StatelessWidget {
       width: blockWidth,
       child: _SlotBlockContent(
         slot: slot,
+        isDone: doneSlotIds.contains(slot.id),
         onTap: () => onTapSlot(slot),
       ),
     );
@@ -243,9 +259,10 @@ class _DayColumn extends StatelessWidget {
 
 class _SlotBlockContent extends StatelessWidget {
   final ActivitySlot slot;
+  final bool isDone;
   final VoidCallback onTap;
 
-  const _SlotBlockContent({required this.slot, required this.onTap});
+  const _SlotBlockContent({required this.slot, required this.isDone, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -257,42 +274,60 @@ class _SlotBlockContent extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final showTime = constraints.maxHeight >= 34;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    slot.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      height: 1.1,
-                    ),
-                  ),
-                  if (showTime)
-                    Text(
-                      '${slot.startTime.format(context)} - ${slot.endTime.format(context)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        height: 1.1,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final showTime = constraints.maxHeight >= 34;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        slot.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          height: 1.1,
+                        ),
                       ),
-                    ),
-                ],
-              );
-            },
-          ),
+                      if (showTime)
+                        Text(
+                          '${slot.startTime.format(context)} - ${slot.endTime.format(context)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            height: 1.1,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            if (isDone)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: Container(
+                  width: 13,
+                  height: 13,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
+                  child: Icon(Icons.check, size: 10, color: color),
+                ),
+              ),
+          ],
         ),
       ),
     );
