@@ -49,123 +49,142 @@ class ActivitySlotTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: isOngoing ? Border.all(color: color, width: 1.5) : null,
         ),
-        child: Opacity(
-          opacity: isDone ? 0.6 : 1.0,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
+        // The check circle is a SIBLING of the edit InkWell below, not a
+        // descendant of it. Nesting it inside the edit InkWell put two
+        // tap-gesture recognizers in the same hit-test region, and the
+        // outer one was winning the gesture arena — so taps on the check
+        // circle never reached its own onTap. Keeping them side-by-side in
+        // this Row removes the overlap entirely.
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Opacity(
+                opacity: isDone ? 0.6 : 1.0,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: onTap,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  slot.title,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    decoration:
-                                        isDone ? TextDecoration.lineThrough : null,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isOngoing)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: color,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'NOW',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${slot.startTime.format(context)} - ${slot.endTime.format(context)}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                          Container(
+                            width: 4,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(4),
                             ),
                           ),
-                          if (slot.location != null && slot.location!.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Row(
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.place_outlined,
-                                    size: 14, color: theme.colorScheme.onSurfaceVariant),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    slot.location!,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        slot.title,
+                                        style: theme.textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          decoration: isDone
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isOngoing)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: color,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Text(
+                                          'NOW',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${slot.startTime.format(context)} - ${slot.endTime.format(context)}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                if (slot.location != null &&
+                                    slot.location!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.place_outlined,
+                                          size: 14,
+                                          color: theme.colorScheme.onSurfaceVariant),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          slot.location!,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: theme.colorScheme.onSurfaceVariant,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                if (slot.notes != null && slot.notes!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    slot.notes!,
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: theme.colorScheme.onSurfaceVariant,
+                                      fontStyle: FontStyle.italic,
                                     ),
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
+                                ],
                               ],
                             ),
-                          ],
-                          if (slot.notes != null && slot.notes!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              slot.notes!,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontStyle: FontStyle.italic,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
                             ),
-                          ],
+                            child: Icon(slot.category.icon, size: 16, color: color),
+                          ),
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(slot.category.icon, size: 16, color: color),
-                    ),
-                    const SizedBox(width: 8),
-                    _CheckCircle(
-                      color: color,
-                      isDone: isDone,
-                      onTap: onToggleDone,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _CheckCircle(
+                color: color,
+                isDone: isDone,
+                onTap: onToggleDone,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -192,11 +211,15 @@ class _CheckCircle extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: SizedBox(
-          width: 28,
-          height: 28,
-          child: isDone
-              ? const Icon(Icons.check, size: 16, color: Colors.white)
-              : null,
+          // At least 44x44 so the tap target meets the platform minimum
+          // touch-size guidance instead of the visual 28px circle alone.
+          width: 44,
+          height: 44,
+          child: Center(
+            child: isDone
+                ? const Icon(Icons.check, size: 20, color: Colors.white)
+                : null,
+          ),
         ),
       ),
     );

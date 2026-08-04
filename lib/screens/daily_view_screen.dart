@@ -66,6 +66,7 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
   }
 
   Future<void> _toggleDone(ActivitySlot slot, DateTime date, bool currentlyDone) async {
+    debugPrint('[checkin] toggle tapped: slot=${slot.id} date=$date currentlyDone=$currentlyDone');
     if (currentlyDone) {
       await _completion.unmarkDone(slot.id, date);
     } else {
