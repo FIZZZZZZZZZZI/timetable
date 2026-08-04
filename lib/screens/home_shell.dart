@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'daily_view_screen.dart';
+import 'profile_screen.dart';
 import 'week_view_screen.dart';
 
 class HomeShell extends StatefulWidget {
@@ -21,6 +22,7 @@ class _HomeShellState extends State<HomeShell> {
         children: const [
           DailyViewScreen(),
           WeekViewScreen(),
+          ProfileScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -36,6 +38,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.calendar_view_week_outlined),
             selectedIcon: Icon(Icons.calendar_view_week),
             label: 'Week',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
 import '../services/completion_service.dart';
+import '../services/custom_category_service.dart';
 import '../services/prayer_service.dart';
 import '../services/storage_service.dart';
 import '../utils/slot_layout.dart';
@@ -301,7 +301,7 @@ class _SlotBlockContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = slot.category.color;
+    final color = CustomCategoryService.instance.resolve(slot).color;
 
     return Material(
       color: color.withValues(alpha: 0.85),

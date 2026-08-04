@@ -47,6 +47,8 @@ class CompletionService {
 
   bool isDone(String slotId, DateTime date) => _box.containsKey(_keyFor(slotId, date));
 
+  List<CompletionRecord> getAll() => _box.values.toList();
+
   /// Whether at least one slot (any slot) was completed on [date].
   bool hasAnyCompletionOn(DateTime date) {
     final d = normalizeDate(date);

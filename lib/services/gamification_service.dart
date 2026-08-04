@@ -2,19 +2,26 @@ import 'dart:math';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../data/badges.dart';
 import '../models/activity_slot.dart';
 import '../models/user_progress.dart';
 import '../utils/week_dates.dart';
+import 'achievement_service.dart';
 import 'completion_service.dart';
 import 'prayer_service.dart';
 
 /// Outcome of a single XP-earning action, so the UI knows whether to pop a
-/// level-up celebration.
+/// level-up celebration and/or any badge-unlock celebrations.
 class GamificationResult {
   final bool leveledUp;
   final int newLevel;
+  final List<BadgeDefinition> newlyUnlockedBadges;
 
-  const GamificationResult({required this.leveledUp, required this.newLevel});
+  const GamificationResult({
+    required this.leveledUp,
+    required this.newLevel,
+    this.newlyUnlockedBadges = const [],
+  });
 }
 
 /// Tracks XP, level and streak state. Pure service layer: no BuildContext,
@@ -33,6 +40,7 @@ class GamificationService {
   static const int allPrayersBonusXp = 25;
 
   final CompletionService _completion = CompletionService.instance;
+  final AchievementService _achievements = AchievementService.instance;
 
   late Box<UserProgress> _box;
 
@@ -97,7 +105,16 @@ class GamificationService {
     await _recomputeStreak();
 
     final levelAfter = levelForXp(p.totalXp);
-    return GamificationResult(leveledUp: levelAfter > levelBefore, newLevel: levelAfter);
+    final newBadges = await _achievements.checkAndUnlock(
+      level: levelAfter,
+      activityStreak: p.currentStreak,
+      prayerStreak: p.prayerCurrentStreak,
+    );
+    return GamificationResult(
+      leveledUp: levelAfter > levelBefore,
+      newLevel: levelAfter,
+      newlyUnlockedBadges: newBadges,
+    );
   }
 
   /// Call after [CompletionService.unmarkDone] succeeds, mirroring
@@ -182,7 +199,16 @@ class GamificationService {
     await _recomputePrayerStreak();
 
     final levelAfter = levelForXp(p.totalXp);
-    return GamificationResult(leveledUp: levelAfter > levelBefore, newLevel: levelAfter);
+    final newBadges = await _achievements.checkAndUnlock(
+      level: levelAfter,
+      activityStreak: p.currentStreak,
+      prayerStreak: p.prayerCurrentStreak,
+    );
+    return GamificationResult(
+      leveledUp: levelAfter > levelBefore,
+      newLevel: levelAfter,
+      newlyUnlockedBadges: newBadges,
+    );
   }
 
   /// Call after [CompletionService.unmarkDone] for a prayer id succeeds.

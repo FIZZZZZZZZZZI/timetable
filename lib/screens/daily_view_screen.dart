@@ -10,6 +10,7 @@ import '../services/storage_service.dart';
 import '../utils/week_dates.dart';
 import '../widgets/activity_slot_tile.dart';
 import '../widgets/add_edit_slot_sheet.dart';
+import '../widgets/badge_unlock_dialog.dart';
 import '../widgets/day_tabs.dart';
 import '../widgets/level_up_dialog.dart';
 import '../widgets/prayer_tile.dart';
@@ -116,9 +117,7 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
     );
     if (!mounted) return;
     setState(() {});
-    if (result.leveledUp) {
-      await LevelUpDialog.show(context, result.newLevel);
-    }
+    await _showCelebrations(result);
   }
 
   Future<void> _togglePrayerDone(
@@ -137,8 +136,19 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
     final result = await _gamification.onPrayerMarkedDone(prayerId: prayer.id, date: date);
     if (!mounted) return;
     setState(() {});
+    await _showCelebrations(result);
+  }
+
+  /// Level-up first, then any newly unlocked badges, one at a time — each
+  /// dialog awaits dismissal before the next appears.
+  Future<void> _showCelebrations(GamificationResult result) async {
     if (result.leveledUp) {
+      if (!mounted) return;
       await LevelUpDialog.show(context, result.newLevel);
+    }
+    for (final badge in result.newlyUnlockedBadges) {
+      if (!mounted) return;
+      await BadgeUnlockDialog.show(context, badge);
     }
   }
 

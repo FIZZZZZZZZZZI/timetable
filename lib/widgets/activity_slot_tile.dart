@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
+import '../services/custom_category_service.dart';
 import 'check_circle.dart';
 
 class ActivitySlotTile extends StatelessWidget {
@@ -25,7 +25,8 @@ class ActivitySlotTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = slot.category.color;
+    final display = CustomCategoryService.instance.resolve(slot);
+    final color = display.color;
 
     return Dismissible(
       key: ValueKey(slot.id),
@@ -168,7 +169,7 @@ class ActivitySlotTile extends StatelessWidget {
                               color: color.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(slot.category.icon, size: 16, color: color),
+                            child: Text(display.emoji, style: const TextStyle(fontSize: 14)),
                           ),
                         ],
                       ),

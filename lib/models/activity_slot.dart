@@ -39,6 +39,14 @@ class ActivitySlot extends HiveObject {
   @HiveField(8, defaultValue: 15)
   int reminderMinutes;
 
+  /// If set, this slot belongs to a user-created [CustomCategory] (looked
+  /// up by id via `CustomCategoryService`) instead of the built-in
+  /// [category] enum value above, which is kept as a harmless fallback
+  /// (defaults to [ActivityCategory.other]) for any code path that isn't
+  /// custom-category aware.
+  @HiveField(9)
+  String? customCategoryId;
+
   ActivitySlot({
     required this.id,
     required this.title,
@@ -49,6 +57,7 @@ class ActivitySlot extends HiveObject {
     this.location,
     this.notes,
     this.reminderMinutes = 15,
+    this.customCategoryId,
   });
 
   int get startMinutes => startTime.hour * 60 + startTime.minute;
@@ -70,6 +79,7 @@ class ActivitySlot extends HiveObject {
     String? location,
     String? notes,
     int? reminderMinutes,
+    String? customCategoryId,
   }) {
     return ActivitySlot(
       id: id,
@@ -81,6 +91,7 @@ class ActivitySlot extends HiveObject {
       location: location ?? this.location,
       notes: notes ?? this.notes,
       reminderMinutes: reminderMinutes ?? this.reminderMinutes,
+      customCategoryId: customCategoryId ?? this.customCategoryId,
     );
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/activity_category.dart';
 import '../models/activity_slot.dart';
+import '../models/custom_category.dart';
+import '../services/custom_category_service.dart';
 import '../widgets/category_chip_picker.dart';
 import '../widgets/day_tabs.dart';
 
@@ -25,11 +27,16 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
   late final TextEditingController _locationController;
   late final TextEditingController _notesController;
 
-  late ActivityCategory _category;
+  /// Unified category selection: a built-in [ActivityCategory]'s `.name`,
+  /// or a [CustomCategory]'s id. Resolved back into the pair the model
+  /// actually stores (`category` enum + optional `customCategoryId`) on
+  /// submit — see [_builtInFor]/[_customFor].
+  late String _categoryId;
   late int _dayOfWeek;
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
   late int _reminderMinutes;
+  late final List<CustomCategory> _customCategories;
 
   bool get _isEditing => widget.existing != null;
 
@@ -40,11 +47,27 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
     _titleController = TextEditingController(text: existing?.title ?? '');
     _locationController = TextEditingController(text: existing?.location ?? '');
     _notesController = TextEditingController(text: existing?.notes ?? '');
-    _category = existing?.category ?? ActivityCategory.kelas;
+    _customCategories = CustomCategoryService.instance.getAll();
+    _categoryId = existing?.customCategoryId ??
+        (existing?.category ?? ActivityCategory.kelas).name;
     _dayOfWeek = existing?.dayOfWeek ?? widget.initialDay;
     _startTime = existing?.startTime ?? const TimeOfDay(hour: 9, minute: 0);
     _endTime = existing?.endTime ?? const TimeOfDay(hour: 10, minute: 0);
     _reminderMinutes = existing?.reminderMinutes ?? 15;
+  }
+
+  ActivityCategory? _builtInFor(String id) {
+    for (final c in ActivityCategory.values) {
+      if (c.name == id) return c;
+    }
+    return null;
+  }
+
+  CustomCategory? _customFor(String id) {
+    for (final c in _customCategories) {
+      if (c.id == id) return c;
+    }
+    return null;
   }
 
   @override
@@ -83,10 +106,14 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
       return;
     }
 
+    final builtIn = _builtInFor(_categoryId);
+    final custom = builtIn == null ? _customFor(_categoryId) : null;
+
     final slot = ActivitySlot(
       id: widget.existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       title: _titleController.text.trim(),
-      category: _category,
+      category: builtIn ?? ActivityCategory.other,
+      customCategoryId: custom?.id,
       dayOfWeek: _dayOfWeek,
       startTime: _startTime,
       endTime: _endTime,
@@ -155,8 +182,9 @@ class _AddEditSlotSheetState extends State<AddEditSlotSheet> {
                 Text('Category', style: theme.textTheme.labelLarge),
                 const SizedBox(height: 8),
                 CategoryChipPicker(
-                  selected: _category,
-                  onSelected: (c) => setState(() => _category = c),
+                  selectedId: _categoryId,
+                  customCategories: _customCategories,
+                  onSelected: (id) => setState(() => _categoryId = id),
                 ),
                 const SizedBox(height: 20),
                 Text('Day', style: theme.textTheme.labelLarge),
