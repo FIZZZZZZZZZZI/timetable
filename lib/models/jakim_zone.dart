@@ -1,6 +1,10 @@
 /// A JAKIM e-Solat zone: the unit prayer times are published per, covering
-/// one or more districts within a state. Sourced from the canonical zone
-/// list at https://api.waktusolat.app/zones.
+/// one or more districts within a state.
+///
+/// [kJakimZones] below is a hardcoded snapshot used only as an offline
+/// fallback when `PrayerService` can't fetch the live list from
+/// solat.my's `/api/locations`; the app otherwise uses whatever that
+/// endpoint returns.
 class JakimZone {
   final String code;
   final String state;

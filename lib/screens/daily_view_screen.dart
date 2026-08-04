@@ -171,9 +171,10 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
     // stay view-only since you can't complete something before it happens.
     final canToggleDone = !selectedDate.isAfter(normalizeDate(DateTime.now()));
 
+    final prayerActivities = _prayer.getPrayerActivitiesForDate(selectedDate);
     final timeline = <_TimelineEntry>[
       ...slots.map(_ActivityEntry.new),
-      ..._prayer.getPrayerActivitiesForDate(selectedDate).map(_PrayerEntry.new),
+      ...prayerActivities.map(_PrayerEntry.new),
     ]..sort((a, b) => a.minutesOfDay.compareTo(b.minutesOfDay));
 
     return Scaffold(
@@ -211,6 +212,18 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
               onDaySelected: (day) => setState(() => _selectedDay = day),
             ),
           ),
+          if (prayerActivities.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: _PrayerUnavailableBanner(
+                onOpenSettings: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
           Expanded(
             child: timeline.isEmpty
                 ? _EmptyState(onAdd: () => _openAddEditSheet())
@@ -253,6 +266,50 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
         label: const Text('Add Activity'),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
+      ),
+    );
+  }
+}
+
+/// Shown in place of the prayer timeline entries whenever nothing is
+/// cached for the selected date/zone yet (first launch offline, zone just
+/// changed with no connectivity, API unreachable, etc) — never a crash,
+/// always a way forward.
+class _PrayerUnavailableBanner extends StatelessWidget {
+  final VoidCallback onOpenSettings;
+
+  const _PrayerUnavailableBanner({required this.onOpenSettings});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: PrayerTile.accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: PrayerTile.accent.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Text('🕌', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Pilih zon & sambung internet untuk muat waktu solat',
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface),
+            ),
+          ),
+          TextButton(
+            onPressed: onOpenSettings,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Tetapan'),
+          ),
+        ],
       ),
     );
   }

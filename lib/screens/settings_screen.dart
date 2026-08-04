@@ -12,13 +12,22 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _prayer = PrayerService.instance;
+  late List<JakimZone> _zones;
   late String _selectedZone;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
+    _zones = _prayer.getAvailableZones();
     _selectedZone = _prayer.selectedZone;
+    // The persisted zone should normally be one of _zones, but if the
+    // fetched/fallback list ever doesn't contain it (API changed codes,
+    // corrupted cache, etc), fall back to the first available zone rather
+    // than crashing the dropdown's "exactly one matching item" assertion.
+    if (!_zones.any((z) => z.code == _selectedZone) && _zones.isNotEmpty) {
+      _selectedZone = _zones.first.code;
+    }
   }
 
   Future<void> _onZoneChanged(String? code) async {
@@ -31,9 +40,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() => _saving = false);
   }
 
+  Map<String, List<JakimZone>> get _zonesByState {
+    final map = <String, List<JakimZone>>{};
+    for (final zone in _zones) {
+      map.putIfAbsent(zone.state, () => []).add(zone);
+    }
+    return map;
+  }
+
   List<DropdownMenuItem<String>> _buildGroupedItems(ThemeData theme) {
     final items = <DropdownMenuItem<String>>[];
-    for (final stateEntry in jakimZonesByState.entries) {
+    for (final stateEntry in _zonesByState.entries) {
       items.add(
         DropdownMenuItem<String>(
           enabled: false,
@@ -62,10 +79,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return items;
   }
 
+  JakimZone? get _currentZone {
+    for (final zone in _zones) {
+      if (zone.code == _selectedZone) return zone;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentZone = kJakimZones.firstWhere((z) => z.code == _selectedZone);
+    final currentZone = _currentZone;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -92,13 +116,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             items: _buildGroupedItems(theme),
             onChanged: _saving ? null : _onZoneChanged,
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${currentZone.state} — ${currentZone.area}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          if (currentZone != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${currentZone.state} — ${currentZone.area}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
+          ],
           if (_saving) ...[
             const SizedBox(height: 16),
             Row(
