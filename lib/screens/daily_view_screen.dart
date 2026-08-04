@@ -100,7 +100,9 @@ class _DailyViewScreenState extends State<DailyViewScreen> {
     final slots = _slotsForSelectedDay;
     final theme = Theme.of(context);
     final selectedDate = dateForDayOfWeek(_selectedDay);
-    final canToggleDone = _selectedDay == DateTime.now().weekday;
+    // Today and any past day (this week) can be checked off; future days
+    // stay view-only since you can't complete something before it happens.
+    final canToggleDone = !selectedDate.isAfter(normalizeDate(DateTime.now()));
 
     return Scaffold(
       appBar: AppBar(
