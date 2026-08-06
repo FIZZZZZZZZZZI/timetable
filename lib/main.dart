@@ -1,8 +1,10 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'screens/home_shell.dart';
+import 'screens/auth_gate.dart';
 import 'services/achievement_service.dart';
+import 'services/auth_service.dart';
 import 'services/completion_service.dart';
 import 'services/custom_category_service.dart';
 import 'services/gamification_service.dart';
@@ -14,6 +16,7 @@ import 'utils/app_theme_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   await StorageService.instance.init();
   await CompletionService.instance.init();
   await CustomCategoryService.instance.init();
@@ -22,6 +25,7 @@ Future<void> main() async {
   await NotificationService.instance.init();
   await PrayerService.instance.init();
   await ThemeService.instance.init();
+  await AuthService.instance.init();
   runApp(const PlannerApp());
 }
 
@@ -37,7 +41,7 @@ class PlannerApp extends StatelessWidget {
           title: 'Weekly Planner',
           debugShowCheckedModeBanner: false,
           theme: buildThemeData(ThemeService.instance.currentTheme),
-          home: const HomeShell(),
+          home: const AuthGate(),
         );
       },
     );

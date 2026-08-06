@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "892316019750",
+    "project_id": "timetable-planner-2871c",
+    "storage_bucket": "timetable-planner-2871c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892316019750:android:ba25ae5fa5e20132300ae7",
+        "android_client_info": {
+          "package_name": "com.example.timetable"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCGjRZZDi18z4X9qFLctW3k9QPLl_M9ww"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../data/badges.dart';
@@ -5,6 +6,7 @@ import '../data/theme_presets.dart';
 import '../models/activity_category.dart';
 import '../models/app_theme.dart';
 import '../services/achievement_service.dart';
+import '../services/auth_service.dart';
 import '../services/gamification_service.dart';
 import '../services/theme_service.dart';
 import '../utils/app_theme_data.dart';
@@ -21,6 +23,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _gamification = GamificationService.instance;
   final _achievements = AchievementService.instance;
   final _themes = ThemeService.instance;
+  final _auth = AuthService.instance;
+
+  Future<void> _confirmSignOut() async {
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+          'You can sign back in anytime with the same Google account. '
+          'Your local data stays on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Sign out', style: TextStyle(color: theme.colorScheme.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      // AuthGate's authStateChanges stream swaps to the login screen once
+      // this completes — no manual navigation needed here.
+      await _auth.signOut();
+    }
+  }
 
   Future<void> _selectTheme(String id) async {
     await _themes.selectTheme(id);
@@ -41,6 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final level = _gamification.currentLevel;
     final streakColor =
         theme.extension<AppColorsExtension>()?.streakColor ?? Colors.deepOrange;
+    final user = _auth.currentUser;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile'), centerTitle: false),
@@ -49,6 +82,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (user != null) ...[
+              _UserHeaderCard(user: user, onSignOut: _confirmSignOut),
+              const SizedBox(height: 20),
+            ],
             Center(
               child: SizedBox(
                 width: 140,
@@ -184,6 +221,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   int _unlockedCount(AchievementService achievements) =>
       kBadgeDefinitions.where((b) => achievements.isUnlocked(b.id)).length;
+}
+
+class _UserHeaderCard extends StatelessWidget {
+  final User user;
+  final VoidCallback onSignOut;
+
+  const _UserHeaderCard({required this.user, required this.onSignOut});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final photoUrl = user.photoURL;
+    final email = user.email;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: theme.colorScheme.primaryContainer,
+            backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+            child: photoUrl == null
+                ? Icon(Icons.person, color: theme.colorScheme.onPrimaryContainer)
+                : null,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.displayName ?? 'Signed in',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (email != null)
+                  Text(
+                    email,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+            onPressed: onSignOut,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StatCard extends StatelessWidget {
